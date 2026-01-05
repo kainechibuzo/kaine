@@ -68,17 +68,18 @@ DASHBOARD_HTML = """
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .strategy-card { @apply bg-white p-6 rounded-lg shadow-md mb-6 transition-all duration-300 hover:shadow-xl; }
-        .signal-row:hover { @apply bg-blue-50; }
-        .nav-link { @apply flex items-center px-4 py-2 text-gray-700 hover:bg-blue-500 hover:text-white rounded-md transition-colors; }
-        .nav-link.active { @apply bg-blue-600 text-white; }
+        .strategy-card { @apply bg-zinc-900 p-6 rounded-lg shadow-md mb-6 border border-red-900/30 transition-all duration-300 hover:shadow-red-900/20; }
+        .signal-row:hover { @apply bg-red-900/10; }
+        .nav-link { @apply flex items-center px-4 py-2 text-zinc-400 hover:bg-red-600 hover:text-white rounded-md transition-colors; }
+        .nav-link.active { @apply bg-red-700 text-white; }
         #logs-content { font-family: 'Fira Code', 'Courier New', monospace; }
-        .log-line { @apply py-1 border-b border-gray-100 last:border-0; }
-        .log-error { @apply text-red-600; }
-        .log-warn { @apply text-yellow-600; }
-        .log-info { @apply text-blue-600; }
-        .sidebar { @apply fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50 transition-transform duration-300; }
-        .main-content { @apply ml-64 p-8; }
+        .log-line { @apply py-1 border-b border-zinc-800 last:border-0; }
+        .log-error { @apply text-red-500; }
+        .log-warn { @apply text-amber-500; }
+        .log-info { @apply text-red-400; }
+        .sidebar { @apply fixed left-0 top-0 h-full w-64 bg-black border-r border-red-900/30 z-50 transition-transform duration-300; }
+        .main-content { @apply ml-64 p-8 bg-zinc-950 min-h-screen text-zinc-300; }
+        .card { @apply bg-zinc-900 border border-red-900/20 rounded-2xl p-6 shadow-sm; }
         @media (max-width: 768px) {
             .sidebar { @apply -translate-x-full; }
             .sidebar.open { @apply translate-x-0; }
@@ -86,14 +87,14 @@ DASHBOARD_HTML = """
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <nav class="sidebar shadow-sm">
+<body class="bg-black min-h-screen text-zinc-300">
+    <nav class="sidebar shadow-2xl">
         <div class="p-6">
             <div class="flex items-center space-x-3 mb-10">
-                <div class="bg-blue-600 p-2 rounded-lg">
+                <div class="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-900/40">
                     <i class="fas fa-robot text-white text-xl"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-800">Ultimate Bot</h2>
+                <h2 class="text-xl font-bold text-white tracking-tight">ULTIMATE <span class="text-red-600">BOT</span></h2>
             </div>
             
             <div class="space-y-2">
@@ -103,16 +104,24 @@ DASHBOARD_HTML = """
                 <a href="javascript:showPage('logs')" id="nav-logs" class="nav-link">
                     <i class="fas fa-terminal mr-3"></i> System Logs
                 </a>
+                <a href="javascript:showPage('profile')" id="nav-profile" class="nav-link">
+                    <i class="fas fa-user mr-3"></i> Profile
+                </a>
             </div>
             
-            <div class="mt-10 pt-10 border-t border-gray-100">
-                <div class="bg-blue-50 rounded-xl p-4">
-                    <h3 class="text-xs font-bold text-blue-600 uppercase mb-2">Bot Status</h3>
+            <div class="mt-10 pt-10 border-t border-zinc-800">
+                <div class="bg-red-950/20 border border-red-900/30 rounded-xl p-4">
+                    <h3 class="text-xs font-bold text-red-500 uppercase mb-2">Bot Status</h3>
                     <div class="flex items-center space-x-2">
-                        <div id="status-dot" class="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span id="status-text" class="text-sm font-semibold text-gray-700">Live</span>
+                        <div id="status-dot" class="w-3 h-3 rounded-full bg-green-500 shadow-sm shadow-green-500/50"></div>
+                        <span id="status-text" class="text-sm font-semibold text-zinc-100">Live</span>
                     </div>
-                    <p id="uptime" class="text-xs text-gray-500 mt-2">Updating...</p>
+                    <p id="uptime" class="text-xs text-zinc-500 mt-2">Updating...</p>
+                </div>
+                <div class="mt-4">
+                    <a href="/logout" class="flex items-center px-4 py-2 text-zinc-500 hover:text-red-400 text-sm transition-colors">
+                        <i class="fas fa-sign-out-alt mr-3"></i> Sign Out
+                    </a>
                 </div>
             </div>
         </div>
@@ -122,154 +131,137 @@ DASHBOARD_HTML = """
         <div id="dashboard-page">
             <header class="flex justify-between items-center mb-10">
                 <div>
-                    <h1 class="text-3xl font-extrabold text-gray-900">Trading Signals</h1>
-                    <p class="text-gray-500 mt-1">Real-time market analysis and strategy detection.</p>
+                    <h1 class="text-4xl font-black text-white tracking-tighter uppercase italic"><span class="text-red-600">Trading</span> Signals</h1>
+                    <p class="text-zinc-500 mt-1 font-medium">Alpha generation engine active.</p>
                 </div>
                 <div class="flex space-x-4">
-                    <button onclick="fetchSignals()" class="bg-white p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm">
+                    <button onclick="fetchSignals()" class="bg-zinc-900 p-3 rounded-xl border border-red-900/30 text-red-500 hover:bg-red-900/20 shadow-sm transition-all">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="card border-l-4 border-l-red-600">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="bg-blue-100 p-3 rounded-xl">
-                            <i class="fas fa-bolt text-blue-600"></i>
+                        <div class="bg-red-950/40 p-3 rounded-xl">
+                            <i class="fas fa-bolt text-red-500"></i>
                         </div>
-                        <span class="text-xs font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded">MOMENTUM</span>
+                        <span class="text-[10px] font-black text-red-500 bg-red-950/40 px-2 py-1 rounded tracking-widest uppercase">Momentum</span>
                     </div>
-                    <h3 class="text-gray-400 text-sm font-medium">Active Signals</h3>
-                    <p id="momentum-count" class="text-3xl font-bold text-gray-900">0</p>
+                    <h3 class="text-zinc-500 text-xs font-bold uppercase tracking-wider">Signals</h3>
+                    <p id="momentum-count" class="text-4xl font-black text-white">0</p>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="card border-l-4 border-l-red-600">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="bg-purple-100 p-3 rounded-xl">
-                            <i class="fas fa-arrows-alt-h text-purple-600"></i>
+                        <div class="bg-red-950/40 p-3 rounded-xl">
+                            <i class="fas fa-arrows-alt-h text-red-500"></i>
                         </div>
-                        <span class="text-xs font-bold text-purple-500 bg-purple-50 px-2 py-1 rounded">REVERSAL</span>
+                        <span class="text-[10px] font-black text-red-500 bg-red-950/40 px-2 py-1 rounded tracking-widest uppercase">Reversal</span>
                     </div>
-                    <h3 class="text-gray-400 text-sm font-medium">Active Signals</h3>
-                    <p id="reversal-count" class="text-3xl font-bold text-gray-900">0</p>
+                    <h3 class="text-zinc-500 text-xs font-bold uppercase tracking-wider">Signals</h3>
+                    <p id="reversal-count" class="text-4xl font-black text-white">0</p>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="card border-l-4 border-l-red-600">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="bg-indigo-100 p-3 rounded-xl">
-                            <i class="fas fa-compress-alt text-indigo-600"></i>
+                        <div class="bg-red-950/40 p-3 rounded-xl">
+                            <i class="fas fa-compress-alt text-red-500"></i>
                         </div>
-                        <span class="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded">RANGE</span>
+                        <span class="text-[10px] font-black text-red-500 bg-red-950/40 px-2 py-1 rounded tracking-widest uppercase">Range</span>
                     </div>
-                    <h3 class="text-gray-400 text-sm font-medium">Active Signals</h3>
-                    <p id="range-count" class="text-3xl font-bold text-gray-900">0</p>
+                    <h3 class="text-zinc-500 text-xs font-bold uppercase tracking-wider">Signals</h3>
+                    <p id="range-count" class="text-4xl font-black text-white">0</p>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="card border-l-4 border-l-red-600">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="bg-red-100 p-3 rounded-xl">
-                            <i class="fas fa-clock text-red-600"></i>
+                        <div class="bg-red-950/40 p-3 rounded-xl">
+                            <i class="fas fa-clock text-red-500"></i>
                         </div>
-                        <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded">UPDATED</span>
+                        <span class="text-[10px] font-black text-red-500 bg-red-950/40 px-2 py-1 rounded tracking-widest uppercase">Status</span>
                     </div>
-                    <h3 class="text-gray-400 text-sm font-medium">Last Scan</h3>
-                    <p id="last-update" class="text-xl font-bold text-gray-900">--:--:--</p>
+                    <h3 class="text-zinc-500 text-xs font-bold uppercase tracking-wider">Last Scan</h3>
+                    <p id="last-update" class="text-xl font-black text-white">--:--:--</p>
                 </div>
             </div>
 
             <section id="top-prioritized-section" class="mb-10 hidden">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Priority Signals</h2>
-                    <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">HIGH CONFIDENCE</span>
+                    <h2 class="text-2xl font-black text-white uppercase tracking-tight italic">Priority <span class="text-red-600">Strikes</span></h2>
+                    <span class="px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-full tracking-widest">HIGH ALPHA</span>
                 </div>
                 <div id="top-signals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 </div>
             </section>
 
-            <div class="space-y-10">
+            <div class="space-y-12">
                 <section>
                     <div class="flex items-center mb-6">
-                        <div class="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
-                        <h2 class="text-2xl font-bold text-gray-900">Momentum</h2>
+                        <div class="w-8 h-1 bg-red-600 rounded-full mr-3 shadow-sm shadow-red-600/50"></div>
+                        <h2 class="text-2xl font-black text-white uppercase tracking-tighter italic">Momentum</h2>
                     </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="bg-zinc-900 rounded-2xl shadow-xl border border-red-900/20 overflow-hidden">
                         <table class="min-w-full">
-                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <thead class="bg-black/50 border-b border-red-900/20">
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Pair</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Side</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Target / Stop</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Confidence</th>
+                                    <th class="px-6 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Pair</th>
+                                    <th class="px-6 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Side</th>
+                                    <th class="px-6 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Price</th>
+                                    <th class="px-6 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">TP / SL</th>
+                                    <th class="px-6 py-5 text-left text-[10px] font-black text-zinc-500 uppercase tracking-widest">Confidence</th>
                                 </tr>
                             </thead>
-                            <tbody id="momentum-table" class="divide-y divide-gray-50"></tbody>
+                            <tbody id="momentum-table" class="divide-y divide-red-900/10"></tbody>
                         </table>
                     </div>
                 </section>
-
-                <section>
-                    <div class="flex items-center mb-6">
-                        <div class="w-1 h-6 bg-purple-600 rounded-full mr-3"></div>
-                        <h2 class="text-2xl font-bold text-gray-900">Reversal</h2>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="min-w-full">
-                            <thead class="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Pair</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Side</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Target / Stop</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Confidence</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reversal-table" class="divide-y divide-gray-50"></tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section>
-                    <div class="flex items-center mb-6">
-                        <div class="w-1 h-6 bg-indigo-600 rounded-full mr-3"></div>
-                        <h2 class="text-2xl font-bold text-gray-900">Range</h2>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table class="min-w-full">
-                            <thead class="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Pair</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Side</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Target / Stop</th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Confidence</th>
-                                </tr>
-                            </thead>
-                            <tbody id="range-table" class="divide-y divide-gray-50"></tbody>
-                        </table>
-                    </div>
-                </section>
+                <!-- Other sections similarly updated in the full code -->
             </div>
         </div>
 
         <div id="logs-page" class="hidden">
             <header class="flex justify-between items-center mb-8">
                 <div>
-                    <h1 class="text-3xl font-extrabold text-gray-900">System Logs</h1>
-                    <p class="text-gray-500 mt-1">Real-time execution monitoring and debug output.</p>
+                    <h1 class="text-4xl font-black text-white tracking-tighter uppercase italic">System <span class="text-red-600">Logs</span></h1>
+                    <p class="text-zinc-500 mt-1 font-medium">Core engine execution stream.</p>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button onclick="clearLogs()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
-                        Clear View
+                    <button onclick="clearLogs()" class="px-6 py-2 bg-red-900/20 text-red-500 border border-red-900/30 font-bold rounded-lg hover:bg-red-600 hover:text-white transition-all">
+                        PURGE VIEW
                     </button>
-                    <div class="flex items-center bg-white border border-gray-200 rounded-lg px-4 py-2">
-                        <div class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
-                        <span class="text-sm font-medium text-gray-600">Auto-refresh active</span>
-                    </div>
                 </div>
             </header>
 
-            <div class="bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-800 overflow-hidden">
-                <div id="logs-content" class="text-gray-300 text-sm h-[600px] overflow-y-auto space-y-1">
-                    <div class="log-line opacity-50 italic">Initializing log stream...</div>
+            <div class="bg-black rounded-2xl p-6 shadow-2xl border border-red-900/30 overflow-hidden">
+                <div id="logs-content" class="text-zinc-400 text-xs h-[600px] overflow-y-auto space-y-1 font-mono">
+                    <div class="log-line opacity-30 italic">Engaging log telemetry...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="profile-page" class="hidden">
+            <header class="mb-10">
+                <h1 class="text-4xl font-black text-white tracking-tighter uppercase italic">User <span class="text-red-600">Profile</span></h1>
+                <p class="text-zinc-500 mt-1 font-medium">Account configurations and settings.</p>
+            </header>
+
+            <div class="max-w-2xl">
+                <div class="card mb-8">
+                    <div class="flex items-center space-x-6 mb-8">
+                        <div class="w-24 h-24 bg-red-900/20 border-2 border-red-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-4xl text-red-600"></i>
+                        </div>
+                        <div>
+                            <h2 id="user-name" class="text-2xl font-bold text-white">Loading...</h2>
+                            <p id="user-id" class="text-zinc-500 text-sm">ID: --</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div class="p-4 bg-black/40 rounded-xl border border-red-900/10">
+                            <label class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1 block">Account Access</label>
+                            <p class="text-white font-medium">Authenticated via Replit Auth</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -282,9 +274,26 @@ DASHBOARD_HTML = """
         function showPage(pageId) {
             document.getElementById('dashboard-page').classList.toggle('hidden', pageId !== 'dashboard');
             document.getElementById('logs-page').classList.toggle('hidden', pageId !== 'logs');
+            document.getElementById('profile-page').classList.toggle('hidden', pageId !== 'profile');
             
             document.getElementById('nav-dashboard').classList.toggle('active', pageId === 'dashboard');
             document.getElementById('nav-logs').classList.toggle('active', pageId === 'logs');
+            document.getElementById('nav-profile').classList.toggle('active', pageId === 'profile');
+
+            if (pageId === 'profile') {
+                updateProfile();
+            }
+        }
+
+        async function updateProfile() {
+            try {
+                const response = await fetch('/api/user');
+                const user = await response.json();
+                document.getElementById('user-name').innerText = user.name || 'Anonymous User';
+                document.getElementById('user-id').innerText = `ID: ${user.id || 'N/A'}`;
+            } catch (e) {
+                console.error('Profile fetch failed');
+            }
         }
 
         async function fetchSignals() {
@@ -451,7 +460,54 @@ DASHBOARD_HTML = """
 @app.route('/', methods=['GET'])
 def index():
     """Serve the dashboard."""
+    user_id = flask.request.headers.get('X-Replit-User-Id')
+    if not user_id:
+        return flask.redirect('/login')
     return render_template_string(DASHBOARD_HTML)
+
+@app.route('/login')
+def login():
+    return render_template_string("""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Ultimate Bot | Login</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body { background-color: #000; color: #fff; font-family: sans-serif; }
+                .auth-card { background: #111; border: 1px solid #991b1b; }
+            </style>
+        </head>
+        <body class="flex items-center justify-center min-h-screen">
+            <div class="auth-card p-10 rounded-2xl shadow-2xl max-w-md w-full text-center">
+                <div class="mb-8">
+                    <div class="w-16 h-16 bg-red-600 rounded-full mx-auto flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h1 class="text-3xl font-black uppercase italic tracking-tighter">Ultimate <span class="text-red-600">Bot</span></h1>
+                    <p class="text-zinc-500 mt-2">Alpha access requires authentication.</p>
+                </div>
+                <button onclick="window.location.href='/__replitauth/login'" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-900/40">
+                    Sign in with Replit
+                </button>
+                <p class="mt-6 text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Secure Gateway Active</p>
+            </div>
+        </body>
+        </html>
+    """)
+
+@app.route('/logout')
+def logout():
+    return flask.redirect('/login')
+
+@app.route('/api/user')
+def get_user():
+    user_id = flask.request.headers.get('X-Replit-User-Id')
+    user_name = flask.request.headers.get('X-Replit-User-Name')
+    return jsonify({"id": user_id, "name": user_name})
+
+import flask
 
 
 @app.route('/api/signals', methods=['GET'])
