@@ -118,11 +118,6 @@ DASHBOARD_HTML = """
                     </div>
                     <p id="uptime" class="text-xs text-zinc-500 mt-2">Updating...</p>
                 </div>
-                <div class="mt-4">
-                    <a href="/logout" class="flex items-center px-4 py-2 text-zinc-500 hover:text-red-400 text-sm transition-colors">
-                        <i class="fas fa-sign-out-alt mr-3"></i> Sign Out
-                    </a>
-                </div>
             </div>
         </div>
     </nav>
@@ -460,52 +455,11 @@ DASHBOARD_HTML = """
 @app.route('/', methods=['GET'])
 def index():
     """Serve the dashboard."""
-    user_id = flask.request.headers.get('X-Replit-User-Id')
-    if not user_id:
-        return flask.redirect('/login')
     return render_template_string(DASHBOARD_HTML)
-
-@app.route('/login')
-def login():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Ultimate Bot | Login</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>
-                body { background-color: #000; color: #fff; font-family: sans-serif; }
-                .auth-card { background: #111; border: 1px solid #991b1b; }
-            </style>
-        </head>
-        <body class="flex items-center justify-center min-h-screen">
-            <div class="auth-card p-10 rounded-2xl shadow-2xl max-w-md w-full text-center">
-                <div class="mb-8">
-                    <div class="w-16 h-16 bg-red-600 rounded-full mx-auto flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    </div>
-                    <h1 class="text-3xl font-black uppercase italic tracking-tighter">Ultimate <span class="text-red-600">Bot</span></h1>
-                    <p class="text-zinc-500 mt-2">Alpha access requires authentication.</p>
-                </div>
-                <button onclick="window.location.href='/__replitauth/login'" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-900/40">
-                    Sign in with Replit
-                </button>
-                <p class="mt-6 text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Secure Gateway Active</p>
-            </div>
-        </body>
-        </html>
-    """)
-
-@app.route('/logout')
-def logout():
-    return flask.redirect('/login')
 
 @app.route('/api/user')
 def get_user():
-    user_id = flask.request.headers.get('X-Replit-User-Id')
-    user_name = flask.request.headers.get('X-Replit-User-Name')
-    return jsonify({"id": user_id, "name": user_name})
+    return jsonify({"id": "local_user", "name": "Local Admin"})
 
 import flask
 
