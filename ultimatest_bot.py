@@ -37,6 +37,25 @@ GLOBAL_SIGNALS = {
 }
 GLOBAL_SIGNALS_LOCK = threading.Lock()
 
+# Log storage for API
+SYSTEM_LOGS = []
+LOGS_LOCK = threading.Lock()
+MAX_SYSTEM_LOGS = 200
+
+def add_system_log(message):
+    with LOGS_LOCK:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        SYSTEM_LOGS.append(f"[{timestamp}] {message}")
+        if len(SYSTEM_LOGS) > MAX_SYSTEM_LOGS:
+            SYSTEM_LOGS.pop(0)
+
+# Wrap print to also log to UI
+_original_print = print
+def print(*args, **kwargs):
+    message = " ".join(map(str, args))
+    add_system_log(message)
+    _original_print(*args, **kwargs)
+
 app = Flask(__name__)
 
 DASHBOARD_HTML = """
@@ -47,119 +66,254 @@ DASHBOARD_HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultimate Bot Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .strategy-card { @apply bg-white p-6 rounded-lg shadow-md mb-6; }
-        .signal-row:hover { @apply bg-gray-50; }
+        .strategy-card { @apply bg-white p-6 rounded-lg shadow-md mb-6 transition-all duration-300 hover:shadow-xl; }
+        .signal-row:hover { @apply bg-blue-50; }
+        .nav-link { @apply flex items-center px-4 py-2 text-gray-700 hover:bg-blue-500 hover:text-white rounded-md transition-colors; }
+        .nav-link.active { @apply bg-blue-600 text-white; }
+        #logs-content { font-family: 'Fira Code', 'Courier New', monospace; }
+        .log-line { @apply py-1 border-b border-gray-100 last:border-0; }
+        .log-error { @apply text-red-600; }
+        .log-warn { @apply text-yellow-600; }
+        .log-info { @apply text-blue-600; }
+        .sidebar { @apply fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50 transition-transform duration-300; }
+        .main-content { @apply ml-64 p-8; }
+        @media (max-width: 768px) {
+            .sidebar { @apply -translate-x-full; }
+            .sidebar.open { @apply translate-x-0; }
+            .main-content { @apply ml-0; }
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Ultimate Bot Dashboard</h1>
-                <p class="text-gray-600">Real-time Trading Signals</p>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="sidebar shadow-sm">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-10">
+                <div class="bg-blue-600 p-2 rounded-lg">
+                    <i class="fas fa-robot text-white text-xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Ultimate Bot</h2>
             </div>
-            <div id="status-badge" class="px-4 py-2 rounded-full text-white font-semibold bg-green-500">
-                Live
+            
+            <div class="space-y-2">
+                <a href="javascript:showPage('dashboard')" id="nav-dashboard" class="nav-link active">
+                    <i class="fas fa-chart-line mr-3"></i> Dashboard
+                </a>
+                <a href="javascript:showPage('logs')" id="nav-logs" class="nav-link">
+                    <i class="fas fa-terminal mr-3"></i> System Logs
+                </a>
             </div>
-        </header>
+            
+            <div class="mt-10 pt-10 border-t border-gray-100">
+                <div class="bg-blue-50 rounded-xl p-4">
+                    <h3 class="text-xs font-bold text-blue-600 uppercase mb-2">Bot Status</h3>
+                    <div class="flex items-center space-x-2">
+                        <div id="status-dot" class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span id="status-text" class="text-sm font-semibold text-gray-700">Live</span>
+                    </div>
+                    <p id="uptime" class="text-xs text-gray-500 mt-2">Updating...</p>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-blue-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Momentum</h3>
-                <p id="momentum-count" class="text-2xl font-bold">0</p>
+    <main class="main-content">
+        <div id="dashboard-page">
+            <header class="flex justify-between items-center mb-10">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-gray-900">Trading Signals</h1>
+                    <p class="text-gray-500 mt-1">Real-time market analysis and strategy detection.</p>
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="fetchSignals()" class="bg-white p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-blue-100 p-3 rounded-xl">
+                            <i class="fas fa-bolt text-blue-600"></i>
+                        </div>
+                        <span class="text-xs font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded">MOMENTUM</span>
+                    </div>
+                    <h3 class="text-gray-400 text-sm font-medium">Active Signals</h3>
+                    <p id="momentum-count" class="text-3xl font-bold text-gray-900">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-purple-100 p-3 rounded-xl">
+                            <i class="fas fa-arrows-alt-h text-purple-600"></i>
+                        </div>
+                        <span class="text-xs font-bold text-purple-500 bg-purple-50 px-2 py-1 rounded">REVERSAL</span>
+                    </div>
+                    <h3 class="text-gray-400 text-sm font-medium">Active Signals</h3>
+                    <p id="reversal-count" class="text-3xl font-bold text-gray-900">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-indigo-100 p-3 rounded-xl">
+                            <i class="fas fa-compress-alt text-indigo-600"></i>
+                        </div>
+                        <span class="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded">RANGE</span>
+                    </div>
+                    <h3 class="text-gray-400 text-sm font-medium">Active Signals</h3>
+                    <p id="range-count" class="text-3xl font-bold text-gray-900">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-red-100 p-3 rounded-xl">
+                            <i class="fas fa-clock text-red-600"></i>
+                        </div>
+                        <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded">UPDATED</span>
+                    </div>
+                    <h3 class="text-gray-400 text-sm font-medium">Last Scan</h3>
+                    <p id="last-update" class="text-xl font-bold text-gray-900">--:--:--</p>
+                </div>
             </div>
-            <div class="bg-purple-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Reversal</h3>
-                <p id="reversal-count" class="text-2xl font-bold">0</p>
-            </div>
-            <div class="bg-indigo-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Range</h3>
-                <p id="range-count" class="text-2xl font-bold">0</p>
-            </div>
-            <div class="bg-red-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Last Update</h3>
-                <p id="last-update" class="text-lg font-bold">--:--:--</p>
+
+            <section id="top-prioritized-section" class="mb-10 hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Priority Signals</h2>
+                    <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">HIGH CONFIDENCE</span>
+                </div>
+                <div id="top-signals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+
+            <div class="space-y-10">
+                <section>
+                    <div class="flex items-center mb-6">
+                        <div class="w-1 h-6 bg-blue-600 rounded-full mr-3"></div>
+                        <h2 class="text-2xl font-bold text-gray-900">Momentum</h2>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Pair</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Side</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Target / Stop</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="momentum-table" class="divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="flex items-center mb-6">
+                        <div class="w-1 h-6 bg-purple-600 rounded-full mr-3"></div>
+                        <h2 class="text-2xl font-bold text-gray-900">Reversal</h2>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Pair</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Side</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Target / Stop</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reversal-table" class="divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="flex items-center mb-6">
+                        <div class="w-1 h-6 bg-indigo-600 rounded-full mr-3"></div>
+                        <h2 class="text-2xl font-bold text-gray-900">Range</h2>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Pair</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Side</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Target / Stop</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody id="range-table" class="divide-y divide-gray-50"></tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </div>
 
-        <section id="top-prioritized-section" class="mb-8 hidden">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Top Prioritized Signals</h2>
-            <div id="top-signals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Top signals will be injected here -->
+        <div id="logs-page" class="hidden">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-gray-900">System Logs</h1>
+                    <p class="text-gray-500 mt-1">Real-time execution monitoring and debug output.</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="clearLogs()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                        Clear View
+                    </button>
+                    <div class="flex items-center bg-white border border-gray-200 rounded-lg px-4 py-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                        <span class="text-sm font-medium text-gray-600">Auto-refresh active</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-800 overflow-hidden">
+                <div id="logs-content" class="text-gray-300 text-sm h-[600px] overflow-y-auto space-y-1">
+                    <div class="log-line opacity-50 italic">Initializing log stream...</div>
+                </div>
             </div>
-        </section>
-
-        <div class="space-y-8">
-            <section>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Momentum Signals</h2>
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pair</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TP/SL</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
-                            </tr>
-                        </thead>
-                        <tbody id="momentum-table" class="divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Reversal Signals</h2>
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pair</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TP/SL</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reversal-table" class="divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Range Signals</h2>
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pair</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TP/SL</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
-                            </tr>
-                        </thead>
-                        <tbody id="range-table" class="divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </section>
         </div>
-    </div>
+    </main>
 
     <script>
+        let currentLogs = [];
+        const MAX_LOGS = 500;
+
+        function showPage(pageId) {
+            document.getElementById('dashboard-page').classList.toggle('hidden', pageId !== 'dashboard');
+            document.getElementById('logs-page').classList.toggle('hidden', pageId !== 'logs');
+            
+            document.getElementById('nav-dashboard').classList.toggle('active', pageId === 'dashboard');
+            document.getElementById('nav-logs').classList.toggle('active', pageId === 'logs');
+        }
+
         async function fetchSignals() {
             try {
                 const response = await fetch('/api/signals');
                 const data = await response.json();
                 updateDashboard(data);
-                document.getElementById('status-badge').classList.replace('bg-red-500', 'bg-green-500');
-                document.getElementById('status-badge').innerText = 'Live';
+                setStatus(true);
             } catch (error) {
                 console.error('Error fetching signals:', error);
-                document.getElementById('status-badge').classList.replace('bg-green-500', 'bg-red-500');
-                document.getElementById('status-badge').innerText = 'Offline';
+                setStatus(false);
             }
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                updateLogs(data.logs);
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        function setStatus(online) {
+            const badge = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            badge.className = `w-3 h-3 rounded-full ${online ? 'bg-green-500' : 'bg-red-500'}`;
+            text.innerText = online ? 'Live' : 'Offline';
         }
 
         function updateDashboard(data) {
@@ -180,26 +334,67 @@ DASHBOARD_HTML = """
             }
         }
 
+        function updateLogs(newLogs) {
+            const container = document.getElementById('logs-content');
+            const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 1;
+            
+            if (newLogs.length > 0) {
+                container.innerHTML = '';
+                newLogs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = 'log-line';
+                    if (log.toLowerCase().includes('error') || log.includes('⚠️') || log.includes('Fatal')) {
+                        div.classList.add('log-error');
+                    } else if (log.toLowerCase().includes('warn')) {
+                        div.classList.add('log-warn');
+                    } else if (log.includes('🚀') || log.includes('✓')) {
+                        div.classList.add('log-info');
+                    }
+                    div.textContent = log;
+                    container.appendChild(div);
+                });
+                
+                if (isScrolledToBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('logs-content').innerHTML = '<div class="log-line opacity-50 italic">View cleared. Waiting for new logs...</div>';
+        }
+
         function renderTable(tableId, signals) {
             const table = document.getElementById(tableId);
             table.innerHTML = '';
             
             if (!signals || signals.length === 0) {
-                table.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No signals active</td></tr>';
+                table.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-400 italic">No active signals detected in this category</td></tr>';
                 return;
             }
 
             signals.forEach(sig => {
                 const row = document.createElement('tr');
-                row.className = 'signal-row';
-                const sideClass = sig.side === 'LONG' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+                row.className = 'signal-row transition-colors cursor-default';
+                const sideClass = sig.side === 'LONG' ? 'text-green-600' : 'text-red-600';
+                const sideBg = sig.side === 'LONG' ? 'bg-green-50' : 'bg-red-50';
                 
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${sig.symbol}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${sideClass}">${sig.side}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sig.entry_price || sig.price}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">TP: ${sig.tp} / SL: ${sig.sl}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${((sig.confidence || 0) * 100).toFixed(1)}%</td>
+                    <td class="px-6 py-4 whitespace-nowrap"><span class="font-bold text-gray-900">${sig.symbol}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded-md font-bold text-xs ${sideBg} ${sideClass}">${sig.side}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">${sig.entry_price || sig.price}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div class="flex flex-col">
+                            <span class="text-green-600 font-bold">TP: ${sig.tp}</span>
+                            <span class="text-red-400 text-xs">SL: ${sig.sl}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1 max-w-[100px]">
+                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${(sig.confidence || 0) * 100}%"></div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400">${((sig.confidence || 0) * 100).toFixed(1)}%</span>
+                    </td>
                 `;
                 table.appendChild(row);
             });
@@ -210,28 +405,44 @@ DASHBOARD_HTML = """
             list.innerHTML = '';
             signals.slice(0, 6).forEach(sig => {
                 const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-lg shadow border-l-4 ' + (sig.side === 'LONG' ? 'border-green-500' : 'border-red-500');
+                card.className = 'bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 transition-all duration-300 hover:-translate-y-1 ' + (sig.side === 'LONG' ? 'border-green-500' : 'border-red-500');
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-lg font-bold">${sig.symbol}</span>
-                        <span class="px-2 py-1 text-xs font-semibold rounded ${sig.side === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${sig.side}</span>
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-xl font-extrabold text-gray-900">${sig.symbol}</span>
+                        <span class="px-3 py-1 text-xs font-bold rounded-full ${sig.side === 'LONG' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${sig.side}</span>
                     </div>
-                    <div class="text-sm text-gray-600">
-                        <p>Entry: <span class="font-semibold">${sig.entry_price || sig.price}</span></p>
-                        <p>TP: <span class="text-green-600 font-semibold">${sig.tp}</span></p>
-                        <p>SL: <span class="text-red-600 font-semibold">${sig.sl}</span></p>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Entry Price</p>
+                            <p class="font-bold text-gray-700">${sig.entry_price || sig.price}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Confidence</p>
+                            <p class="font-bold text-blue-600">${((sig.confidence || 0) * 100).toFixed(1)}%</p>
+                        </div>
                     </div>
-                    <div class="mt-3 bg-gray-200 rounded-full h-2">
-                        <div class="bg-blue-600 h-2 rounded-full" style="width: ${(sig.confidence || 0) * 100}%"></div>
+                    <div class="space-y-2 bg-gray-50 p-3 rounded-xl">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-gray-500 font-medium text-green-700">Take Profit</span>
+                            <span class="font-bold text-green-600">${sig.tp}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-gray-500 font-medium">Stop Loss</span>
+                            <span class="font-bold text-red-400">${sig.sl}</span>
+                        </div>
                     </div>
-                    <p class="text-right text-xs mt-1 text-gray-500">Confidence: ${((sig.confidence || 0) * 100).toFixed(1)}%</p>
+                    <div class="mt-4 bg-gray-100 rounded-full h-1.5">
+                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${(sig.confidence || 0) * 100}%"></div>
+                    </div>
                 `;
                 list.appendChild(card);
             });
         }
 
         setInterval(fetchSignals, 5000);
+        setInterval(fetchLogs, 3000);
         fetchSignals();
+        fetchLogs();
     </script>
 </body>
 </html>
@@ -263,6 +474,12 @@ def get_strategy_signals(strategy):
 def health_check():
     """Simple health check endpoint."""
     return jsonify({"status": "running", "timestamp": datetime.now(timezone.utc).isoformat()})
+
+@app.route('/api/logs', methods=['GET'])
+def get_logs():
+    """Get recent system logs."""
+    with LOGS_LOCK:
+        return jsonify({"logs": list(SYSTEM_LOGS)})
 
 def run_flask_app():
     """Run the Flask application on a separate thread."""
