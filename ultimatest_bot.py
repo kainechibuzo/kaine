@@ -107,6 +107,9 @@ DASHBOARD_HTML = """
                 <a href="javascript:showPage('profile')" id="nav-profile" class="nav-link">
                     <i class="fas fa-user mr-3"></i> Profile
                 </a>
+                <a href="javascript:showPage('admin')" id="nav-admin" class="nav-link">
+                    <i class="fas fa-user-shield mr-3"></i> Admin
+                </a>
             </div>
             
             <div class="mt-10 pt-10 border-t border-zinc-800">
@@ -260,6 +263,45 @@ DASHBOARD_HTML = """
                 </div>
             </div>
         </div>
+
+        <div id="admin-page" class="hidden">
+            <header class="mb-10">
+                <h1 class="text-4xl font-black text-white tracking-tighter uppercase italic">Admin <span class="text-red-600">Dashboard</span></h1>
+                <p class="text-zinc-500 mt-1 font-medium">System controls and configuration.</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="card">
+                    <h2 class="text-xl font-bold text-white mb-6 uppercase tracking-tight">Bot Controls</h2>
+                    <div class="space-y-4">
+                        <button onclick="alert('Bot Reset Initialized')" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all">
+                            EMERGENCY STOP
+                        </button>
+                        <button onclick="alert('Cache Cleared')" class="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl transition-all">
+                            CLEAR SYSTEM CACHE
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="text-xl font-bold text-white mb-6 uppercase tracking-tight">System Info</h2>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between border-b border-zinc-800 pb-2">
+                            <span class="text-zinc-500">Python Version</span>
+                            <span class="text-zinc-200">3.11</span>
+                        </div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-2">
+                            <span class="text-zinc-500">Framework</span>
+                            <span class="text-zinc-200">Flask 3.x</span>
+                        </div>
+                        <div class="flex justify-between border-b border-zinc-800 pb-2">
+                            <span class="text-zinc-500">Memory Usage</span>
+                            <span class="text-zinc-200">Optimal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -267,13 +309,20 @@ DASHBOARD_HTML = """
         const MAX_LOGS = 500;
 
         function showPage(pageId) {
-            document.getElementById('dashboard-page').classList.toggle('hidden', pageId !== 'dashboard');
-            document.getElementById('logs-page').classList.toggle('hidden', pageId !== 'logs');
-            document.getElementById('profile-page').classList.toggle('hidden', pageId !== 'profile');
+            const dashboardPage = document.getElementById('dashboard-page');
+            const logsPage = document.getElementById('logs-page');
+            const profilePage = document.getElementById('profile-page');
+            const adminPage = document.getElementById('admin-page');
+
+            if (dashboardPage) dashboardPage.classList.toggle('hidden', pageId !== 'dashboard');
+            if (logsPage) logsPage.classList.toggle('hidden', pageId !== 'logs');
+            if (profilePage) profilePage.classList.toggle('hidden', pageId !== 'profile');
+            if (adminPage) adminPage.classList.toggle('hidden', pageId !== 'admin');
             
             document.getElementById('nav-dashboard').classList.toggle('active', pageId === 'dashboard');
             document.getElementById('nav-logs').classList.toggle('active', pageId === 'logs');
             document.getElementById('nav-profile').classList.toggle('active', pageId === 'profile');
+            document.getElementById('nav-admin').classList.toggle('active', pageId === 'admin');
 
             if (pageId === 'profile') {
                 updateProfile();
@@ -452,9 +501,45 @@ DASHBOARD_HTML = """
 </html>
 """
 
+import jwt
+import datetime as dt
+from functools import wraps
+from flask import Flask, jsonify, render_template_string, request, make_response
+
+JWT_SECRET = os.environ.get("JWT_SECRET", "super-secret-key")
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.cookies.get('auth_token')
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        try:
+            data = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        except:
+            return jsonify({'message': 'Token is invalid!'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    auth = request.json
+    if auth and auth.get('username') == 'admin' and auth.get('password') == 'password':
+        token = jwt.encode({
+            'user': 'admin',
+            'exp': dt.datetime.utcnow() + dt.timedelta(hours=24)
+        }, JWT_SECRET, algorithm="HS256")
+        
+        resp = make_response(jsonify({'message': 'Login successful'}))
+        resp.set_cookie('auth_token', token, httponly=True)
+        return resp
+    
+    return jsonify({'message': 'Invalid credentials'}), 401
+
 @app.route('/', methods=['GET'])
 def index():
     """Serve the dashboard."""
+    # Temporarily allowing direct access for testing as per request
     return render_template_string(DASHBOARD_HTML)
 
 @app.route('/api/user')
