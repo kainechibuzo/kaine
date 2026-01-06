@@ -70,109 +70,127 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Bot Dashboard</title>
+    <title>James Market</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .strategy-card { @apply bg-white p-6 rounded-lg shadow-md mb-6; }
         .signal-row:hover { @apply bg-gray-50; }
+        .bg-silver { background-color: #C0C0C0; }
+        .text-silver { color: #C0C0C0; }
+        .border-silver { border-color: #C0C0C0; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-50 min-h-screen text-gray-800">
     <div class="container mx-auto px-4 py-8">
-        <header class="flex justify-between items-center mb-8">
+        <header class="flex justify-between items-center mb-8 border-b-2 border-silver pb-4">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">Ultimate Bot Dashboard</h1>
-                <p class="text-gray-600">Real-time Trading Signals</p>
+                <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">James Market</h1>
+                <p class="text-gray-500 font-medium">Professional Trading Intelligence</p>
             </div>
-            <div id="status-badge" class="px-4 py-2 rounded-full text-white font-semibold bg-green-500">
+            <div id="status-badge" class="px-6 py-2 rounded-full text-white font-bold bg-green-500 shadow-sm uppercase text-xs tracking-widest">
                 Live
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-blue-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Momentum</h3>
-                <p id="momentum-count" class="text-2xl font-bold">0</p>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white border border-silver text-gray-900 p-6 rounded-xl shadow-sm">
+                <h3 class="text-xs font-bold uppercase text-gray-400 tracking-widest mb-2">Momentum</h3>
+                <p id="momentum-count" class="text-3xl font-black">0</p>
             </div>
-            <div class="bg-purple-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Reversal</h3>
-                <p id="reversal-count" class="text-2xl font-bold">0</p>
+            <div class="bg-white border border-silver text-gray-900 p-6 rounded-xl shadow-sm">
+                <h3 class="text-xs font-bold uppercase text-gray-400 tracking-widest mb-2">Reversal</h3>
+                <p id="reversal-count" class="text-3xl font-black">0</p>
             </div>
-            <div class="bg-indigo-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Range</h3>
-                <p id="range-count" class="text-2xl font-bold">0</p>
+            <div class="bg-white border border-silver text-gray-900 p-6 rounded-xl shadow-sm">
+                <h3 class="text-xs font-bold uppercase text-gray-400 tracking-widest mb-2">Range</h3>
+                <p id="range-count" class="text-3xl font-black">0</p>
             </div>
-            <div class="bg-red-500 text-white p-4 rounded-lg shadow-lg">
-                <h3 class="text-sm font-semibold uppercase">Last Update</h3>
-                <p id="last-update" class="text-lg font-bold">--:--:--</p>
+            <div class="bg-gray-900 text-white p-6 rounded-xl shadow-lg">
+                <h3 class="text-xs font-bold uppercase text-gray-500 tracking-widest mb-2">Last Update</h3>
+                <p id="last-update" class="text-xl font-bold">--:--:--</p>
             </div>
         </div>
 
         <section id="top-prioritized-section" class="mb-8 hidden">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Top Prioritized Signals</h2>
-            <div id="top-signals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="w-2 h-8 bg-silver mr-3 rounded-full"></span>
+                Top Prioritized Signals
+            </h2>
+            <div id="top-signals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Top signals will be injected here -->
             </div>
         </section>
 
         <section class="mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">System Logs</h2>
-            <div id="logs-container" class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-64 overflow-y-auto shadow-inner">
-                <div id="logs-content">Waiting for logs...</div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                <span class="w-2 h-8 bg-silver mr-3 rounded-full"></span>
+                System Logs
+            </h2>
+            <div id="logs-container" class="bg-white border border-silver text-gray-600 p-4 rounded-xl font-mono text-sm h-64 overflow-y-auto shadow-inner">
+                <div id="logs-content" class="space-y-1">Waiting for logs...</div>
             </div>
         </section>
 
         <div class="space-y-8">
             <section>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Momentum Signals</h2>
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                    <span class="w-2 h-8 bg-silver mr-3 rounded-full"></span>
+                    Momentum Signals
+                </h2>
+                <div class="bg-white rounded-xl shadow-sm border border-silver overflow-x-auto">
                     <table class="min-w-full">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-50 border-b border-silver">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pair</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TP/SL</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Pair</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Side</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">TP/SL</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Confidence</th>
                             </tr>
                         </thead>
-                        <tbody id="momentum-table" class="divide-y divide-gray-200"></tbody>
+                        <tbody id="momentum-table" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </section>
 
             <section>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Reversal Signals</h2>
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                    <span class="w-2 h-8 bg-silver mr-3 rounded-full"></span>
+                    Reversal Signals
+                </h2>
+                <div class="bg-white rounded-xl shadow-sm border border-silver overflow-x-auto">
                     <table class="min-w-full">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-50 border-b border-silver">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pair</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TP/SL</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Pair</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Side</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">TP/SL</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Confidence</th>
                             </tr>
                         </thead>
-                        <tbody id="reversal-table" class="divide-y divide-gray-200"></tbody>
+                        <tbody id="reversal-table" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </section>
 
             <section>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">Range Signals</h2>
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                    <span class="w-2 h-8 bg-silver mr-3 rounded-full"></span>
+                    Range Signals
+                </h2>
+                <div class="bg-white rounded-xl shadow-sm border border-silver overflow-x-auto">
                     <table class="min-w-full">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-50 border-b border-silver">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pair</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TP/SL</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Pair</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Side</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">TP/SL</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Confidence</th>
                             </tr>
                         </thead>
-                        <tbody id="range-table" class="divide-y divide-gray-200"></tbody>
+                        <tbody id="range-table" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </section>
@@ -241,11 +259,12 @@ DASHBOARD_HTML = """
             signals.forEach(sig => {
                 const row = document.createElement('tr');
                 row.className = 'signal-row';
-                const sideClass = sig.side === 'LONG' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+                const side = sig.side || sig.direction || sig.expected_direction || 'UNKNOWN';
+                const sideClass = side === 'LONG' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${sig.symbol}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${sideClass}">${sig.side}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${sideClass}">${side}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sig.entry_price || sig.price}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">TP: ${sig.tp} / SL: ${sig.sl}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${((sig.confidence || 0) * 100).toFixed(1)}%</td>
@@ -258,12 +277,13 @@ DASHBOARD_HTML = """
             const list = document.getElementById('top-signals-list');
             list.innerHTML = '';
             signals.slice(0, 6).forEach(sig => {
+                const side = sig.side || sig.direction || sig.expected_direction || 'UNKNOWN';
                 const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-lg shadow border-l-4 ' + (sig.side === 'LONG' ? 'border-green-500' : 'border-red-500');
+                card.className = 'bg-white p-4 rounded-lg shadow border-l-4 ' + (side === 'LONG' ? 'border-green-500' : 'border-red-500');
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-lg font-bold">${sig.symbol}</span>
-                        <span class="px-2 py-1 text-xs font-semibold rounded ${sig.side === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${sig.side}</span>
+                        <span class="px-2 py-1 text-xs font-semibold rounded ${side === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${side}</span>
                     </div>
                     <div class="text-sm text-gray-600">
                         <p>Entry: <span class="font-semibold">${sig.entry_price || sig.price}</span></p>
