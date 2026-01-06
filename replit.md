@@ -11,12 +11,10 @@ A short-term adaptive trading bot with a real-time web dashboard. The bot fetche
   - API endpoints for signals
 
 ## Running the Application
-The application runs on port 5000 and provides:
-- Web dashboard at `/` 
-- API endpoints:
-  - `/api/signals` - All trading signals
-  - `/api/signals/<strategy>` - Signals for specific strategy (momentum, reversal, range)
-  - `/api/health` - Health check
+The application is configured to start automatically via the Replit Workflow.
+- It runs `python ultimatest_bot.py`.
+- The dashboard is available at `/` on port 5000.
+- Real-time logs are visible directly on the dashboard.
 
 ## Environment Variables
 The bot uses various optional environment variables for configuration:

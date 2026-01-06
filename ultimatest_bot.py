@@ -37,6 +37,31 @@ GLOBAL_SIGNALS = {
 }
 GLOBAL_SIGNALS_LOCK = threading.Lock()
 
+# Log buffer for API
+LOG_BUFFER = []
+LOG_BUFFER_LOCK = threading.Lock()
+MAX_LOG_LINES = 100
+
+class LogRedirector:
+    def __init__(self, original_stdout):
+        self.original_stdout = original_stdout
+        if hasattr(original_stdout, 'buffer'):
+            self.buffer = original_stdout.buffer
+
+    def write(self, message):
+        if message.strip():
+            with LOG_BUFFER_LOCK:
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                LOG_BUFFER.append(f"[{timestamp}] {message.strip()}")
+                if len(LOG_BUFFER) > MAX_LOG_LINES:
+                    LOG_BUFFER.pop(0)
+        self.original_stdout.write(message)
+
+    def flush(self):
+        self.original_stdout.flush()
+
+sys.stdout = LogRedirector(sys.stdout)
+
 app = Flask(__name__)
 
 DASHBOARD_HTML = """
@@ -87,6 +112,13 @@ DASHBOARD_HTML = """
             <h2 class="text-2xl font-bold text-gray-800 mb-4">Top Prioritized Signals</h2>
             <div id="top-signals-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Top signals will be injected here -->
+            </div>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">System Logs</h2>
+            <div id="logs-container" class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm h-64 overflow-y-auto shadow-inner">
+                <div id="logs-content">Waiting for logs...</div>
             </div>
         </section>
 
@@ -151,6 +183,7 @@ DASHBOARD_HTML = """
         async function fetchSignals() {
             try {
                 const response = await fetch('/api/signals');
+                if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
                 updateDashboard(data);
                 document.getElementById('status-badge').classList.replace('bg-red-500', 'bg-green-500');
@@ -159,6 +192,22 @@ DASHBOARD_HTML = """
                 console.error('Error fetching signals:', error);
                 document.getElementById('status-badge').classList.replace('bg-green-500', 'bg-red-500');
                 document.getElementById('status-badge').innerText = 'Offline';
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const logs = await response.json();
+                const container = document.getElementById('logs-content');
+                if (logs && Array.isArray(logs) && logs.length > 0) {
+                    container.innerHTML = logs.map(log => `<div>${log}</div>`).join('');
+                    const logsWrapper = document.getElementById('logs-container');
+                    logsWrapper.scrollTop = logsWrapper.scrollHeight;
+                }
+            } catch (error) {
+                console.error('Error fetching logs:', error);
             }
         }
 
@@ -231,7 +280,9 @@ DASHBOARD_HTML = """
         }
 
         setInterval(fetchSignals, 5000);
+        setInterval(fetchLogs, 2000);
         fetchSignals();
+        fetchLogs();
     </script>
 </body>
 </html>
@@ -248,6 +299,12 @@ def get_signals():
     """Get all current trading signals."""
     with GLOBAL_SIGNALS_LOCK:
         return jsonify(GLOBAL_SIGNALS)
+
+@app.route('/api/logs', methods=['GET'])
+def get_logs():
+    """Get the latest log messages."""
+    with LOG_BUFFER_LOCK:
+        return jsonify(LOG_BUFFER)
 
 @app.route('/api/signals/<strategy>', methods=['GET'])
 def get_strategy_signals(strategy):
