@@ -261,12 +261,13 @@ DASHBOARD_HTML = """
                 row.className = 'signal-row';
                 const side = sig.side || sig.direction || sig.expected_direction || 'UNKNOWN';
                 const sideClass = side === 'LONG' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+                const price = sig.entry_price || sig.price || sig.entry || 'N/A';
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${sig.symbol}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm ${sideClass}">${side}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sig.entry_price || sig.price}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">TP: ${sig.tp} / SL: ${sig.sl}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${price}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">TP: ${sig.tp || 'N/A'} / SL: ${sig.sl || 'N/A'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${((sig.confidence || 0) * 100).toFixed(1)}%</td>
                 `;
                 table.appendChild(row);
@@ -278,6 +279,7 @@ DASHBOARD_HTML = """
             list.innerHTML = '';
             signals.slice(0, 6).forEach(sig => {
                 const side = sig.side || sig.direction || sig.expected_direction || 'UNKNOWN';
+                const price = sig.entry_price || sig.price || sig.entry || 'N/A';
                 const card = document.createElement('div');
                 card.className = 'bg-white p-4 rounded-lg shadow border-l-4 ' + (side === 'LONG' ? 'border-green-500' : 'border-red-500');
                 card.innerHTML = `
@@ -286,9 +288,9 @@ DASHBOARD_HTML = """
                         <span class="px-2 py-1 text-xs font-semibold rounded ${side === 'LONG' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${side}</span>
                     </div>
                     <div class="text-sm text-gray-600">
-                        <p>Entry: <span class="font-semibold">${sig.entry_price || sig.price}</span></p>
-                        <p>TP: <span class="text-green-600 font-semibold">${sig.tp}</span></p>
-                        <p>SL: <span class="text-red-600 font-semibold">${sig.sl}</span></p>
+                        <p>Entry: <span class="font-semibold">${price}</span></p>
+                        <p>TP: <span class="text-green-600 font-semibold">${sig.tp || 'N/A'}</span></p>
+                        <p>SL: <span class="text-red-600 font-semibold">${sig.sl || 'N/A'}</span></p>
                     </div>
                     <div class="mt-3 bg-gray-200 rounded-full h-2">
                         <div class="bg-blue-600 h-2 rounded-full" style="width: ${(sig.confidence || 0) * 100}%"></div>
