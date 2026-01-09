@@ -220,7 +220,7 @@ DASHBOARD_HTML = """
                 const logs = await response.json();
                 const container = document.getElementById('logs-content');
                 if (logs && Array.isArray(logs) && logs.length > 0) {
-                    container.innerHTML = logs.map(log => `<div>${log}</div>`).join('');
+                    container.innerHTML = logs.map(log => `<div class="py-1 border-b border-gray-100 last:border-0">${log}</div>`).join('');
                     const logsWrapper = document.getElementById('logs-container');
                     logsWrapper.scrollTop = logsWrapper.scrollHeight;
                 }
