@@ -11237,8 +11237,16 @@ if __name__ == "__main__":
 
         # Start Flask API server in a separate background thread
         print(f"📡 Starting Flask API server at https://kaineng.pythonanywhere.com/ ...", flush=True)
+        # Check if we're on a platform that might need the main thread for the web server (like some PaaS)
+        # But generally, the bot loop is the main process.
         flask_thread = threading.Thread(target=run_flask_app, daemon=True)
         flask_thread.start()
+
+        # If PORT env var is present (Render/Vercel standard), ensure we use it
+        # The run_flask_app already checks API_PORT or defaults to 5000.
+        # We can also check for PORT which is common on Render.
+        if os.environ.get("PORT"):
+             os.environ["API_PORT"] = os.environ.get("PORT")
 
         main_loop()
     except KeyboardInterrupt:
